@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RoadAlert Chennai — Citizen Feedback Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/style.css"/>
+  <!-- Leaflet — free maps, no API key needed -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin=""/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══════════════════════════════════════════════════════════ -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-bg-slides" id="auth-slides">
+    <div class="auth-slide active" style="background-image:url('https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=1600&q=80')"></div>
+    <div class="auth-slide" style="background-image:url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&q=80')"></div>
+    <div class="auth-slide" style="background-image:url('https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1600&q=80')"></div>
+    <div class="auth-slide" style="background-image:url('https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=1600&q=80')"></div>
+  </div>
+  <div class="auth-overlay"></div>
+  <div class="auth-left">
+    <div class="auth-brand">Road<span>Alert</span></div>
+    <div class="auth-govt">Chennai Municipal Corporation</div>
+    <h2 class="auth-tagline">Better Roads.<br>Better Chennai.</h2>
+    <p class="auth-sub">Report road issues directly to your ward's maintenance team. Track every complaint until it's resolved.</p>
+    <div class="auth-stats-row">
+      <div class="auth-stat"><div class="auth-stat-n">2,400+</div><div class="auth-stat-l">Issues Reported</div></div>
+      <div class="auth-stat"><div class="auth-stat-n">87%</div><div class="auth-stat-l">Resolution Rate</div></div>
+      <div class="auth-stat"><div class="auth-stat-n">5 Wards</div><div class="auth-stat-l">Covered</div></div>
+    </div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+    <!-- LOGIN -->
+    <div id="form-login" class="auth-form active">
+      <div class="auth-form-title">Welcome back</div>
+      <div class="auth-form-sub">Sign in to your RoadAlert account</div>
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="login-user" placeholder="Enter your username"/>
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="Enter your password"/>
+        <div id="login-err" class="auth-err"></div>
+      </div>
+      <button class="auth-submit" onclick="doLogin()">Sign In →</button>
+      <div class="auth-hint">Admin credentials: <strong>admin</strong> / <strong>admin@1</strong></div>
+    </div>
+    <!-- SIGNUP -->
+    <div id="form-signup" class="auth-form">
+      <div class="auth-form-title">Create account</div>
+      <div class="auth-form-sub">Join to report and track road issues in Chennai</div>
+      <div class="auth-field">
+        <label>Full Name</label>
+        <input type="text" id="su-name" placeholder="e.g. Priya Sharma"/>
+      </div>
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="su-user" placeholder="Choose a username"/>
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="su-pass" placeholder="Min 6 characters"/>
+        <div id="signup-err" class="auth-err"></div>
+      </div>
+      <button class="auth-submit" onclick="doSignup()">Create Account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP SHELL ═════════════════════════════════════════════════════════════ -->
+<div id="app-shell" style="display:none">
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-brand">Road<span>Alert</span> <span class="nav-city">Chennai</span></div>
+  <div class="nav-tabs" id="nav-tabs"></div>
+  <div class="nav-user">
+    <span class="nav-role-badge" id="nav-role-badge"></span>
+    <span id="nav-username"></span>
+    <button class="nav-logout" onclick="doLogout()">Logout</button>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<main class="main-content">
+
+  <!-- ══ USER: HOME ══ -->
+  <div class="page" id="page-home">
+    <div class="home-hero">
+      <div class="hero-slides" id="hero-slides">
+        <div class="hero-slide active" style="background-image:url('https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=1400&q=80')">
+          <div class="hero-caption">Potholes on Chennai roads — report them to get them fixed faster</div>
+        </div>
+        <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1400&q=80')">
+          <div class="hero-caption">Street flooding — your reports help the corporation prioritise drainage work</div>
+        </div>
+        <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1400&q=80')">
+          <div class="hero-caption">Broken street lights — report for a safer neighbourhood</div>
+        </div>
+        <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=1400&q=80')">
+          <div class="hero-caption">Road repair in progress — citizen reports made this happen</div>
+        </div>
+      </div>
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="hero-tag">🏛️ Greater Chennai Corporation</div>
+        <h1>Citizen Road<br>Feedback Portal</h1>
+        <p>Spot a road problem. Report it in 60 seconds.<br>Your complaint goes directly to your ward office.</p>
+        <div class="hero-btns">
+          <button class="btn-primary" onclick="showPage('report')">Report a Problem →</button>
+          <button class="btn-secondary" onclick="showPage('myreports')">My Reports</button>
+        </div>
+      </div>
+      <div class="hero-dots" id="hero-dots"></div>
+      <button class="hero-arrow left"  onclick="changeHeroSlide(-1)">&#8249;</button>
+      <button class="hero-arrow right" onclick="changeHeroSlide(1)">&#8250;</button>
+    </div>
+
+    <div class="stats-strip">
+      <div class="stat-card"><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Total Reports</div></div>
+      <div class="stat-card"><div class="stat-num amber" id="s-review">—</div><div class="stat-lbl">Under Review</div></div>
+      <div class="stat-card"><div class="stat-num green" id="s-fixed">—</div><div class="stat-lbl">Fixed This Month</div></div>
+      <div class="stat-card"><div class="stat-num red" id="s-critical">—</div><div class="stat-lbl">Critical Issues</div></div>
+    </div>
+
+    <div class="how-it-works">
+      <h2 class="section-title">How It Works</h2>
+      <div class="steps-grid">
+        <div class="step-card"><div class="step-icon">📍</div><div class="step-num">01</div><h3>Spot & Report</h3><p>Fill a quick form with location, type and photo. Takes under 2 minutes.</p></div>
+        <div class="step-card"><div class="step-icon">🏛️</div><div class="step-num">02</div><h3>Sent to Ward Office</h3><p>Your complaint is routed directly to the concerned Chennai Municipal ward office.</p></div>
+        <div class="step-card"><div class="step-icon">🔧</div><div class="step-num">03</div><h3>Crew Dispatched</h3><p>The ward maintenance team is notified and a repair crew is assigned.</p></div>
+        <div class="step-card"><div class="step-icon">✅</div><div class="step-num">04</div><h3>Track & Close</h3><p>Get live status updates — Reported → Under Review → Fixed.</p></div>
+      </div>
+    </div>
+
+    <div class="home-recent-wrap">
+      <h2 class="section-title">Recent Reports in Chennai</h2>
+      <div id="home-recent-list" class="home-recent-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ USER: REPORT ISSUE ══ -->
+  <div class="page" id="page-report">
+    <div class="form-wrap">
+      <div class="form-card">
+        <div class="form-header">
+          <h2>📝 Report a Road Issue</h2>
+          <p>Your complaint will be sent to the <strong>Greater Chennai Corporation</strong> ward office. Takes under 2 minutes.</p>
+        </div>
+        <form id="report-form" enctype="multipart/form-data">
+          <div class="form-section">
+            <div class="form-section-title">Issue Type</div>
+            <div class="type-grid" id="type-grid">
+              <div class="type-btn selected" data-value="Pothole"><span class="t-icon">🕳️</span><span>Pothole</span></div>
+              <div class="type-btn" data-value="Broken Light"><span class="t-icon">💡</span><span>Broken Light</span></div>
+              <div class="type-btn" data-value="Flooding"><span class="t-icon">🌊</span><span>Flooding</span></div>
+              <div class="type-btn" data-value="Damaged Sign"><span class="t-icon">🚧</span><span>Damaged Sign</span></div>
+              <div class="type-btn" data-value="Fallen Tree"><span class="t-icon">🌳</span><span>Fallen Tree</span></div>
+              <div class="type-btn" data-value="Road Crack"><span class="t-icon">⚡</span><span>Road Crack</span></div>
+              <div class="type-btn" data-value="Garbage"><span class="t-icon">🗑️</span><span>Garbage</span></div>
+              <div class="type-btn" data-value="Other"><span class="t-icon">❓</span><span>Other</span></div>
+            </div>
+            <input type="hidden" id="f-type" name="type" value="Pothole"/>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Severity</div>
+            <div class="sev-row">
+              <div class="sev-btn low"  data-value="low">🟢 Low — Minor inconvenience</div>
+              <div class="sev-btn med selected" data-value="med">🟡 Medium — Needs attention</div>
+              <div class="sev-btn high" data-value="high">🔴 High — Immediate danger</div>
+            </div>
+            <input type="hidden" id="f-severity" name="severity" value="med"/>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Your Details</div>
+            <div class="field-row">
+              <div class="field-group">
+                <label>Full Name *</label>
+                <input type="text" id="f-reporter" name="reporter" placeholder="e.g. Priya Sharma" required/>
+              </div>
+              <div class="field-group">
+                <label>Phone / Email</label>
+                <input type="text" id="f-contact" name="contact" placeholder="For status updates"/>
+              </div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Location in Chennai</div>
+            <div class="field-row">
+              <div class="field-group">
+                <label>Street / Area *</label>
+                <input type="text" id="f-street" name="street" placeholder="e.g. Anna Salai, Near Bus Stop 14" required/>
+              </div>
+              <div class="field-group">
+                <label>Landmark</label>
+                <input type="text" id="f-landmark" name="landmark" placeholder="e.g. Opposite HDFC Bank"/>
+              </div>
+            </div>
+            <div class="field-group" style="margin-top:12px">
+              <label>Ward / Zone *</label>
+              <select id="f-ward" name="ward" required>
+                <option value="Ward 1 – Central">Ward 1 – Central (Egmore, Vepery, Park Town)</option>
+                <option value="Ward 2 – North">Ward 2 – North (Anna Nagar, Kilpauk, Aminjikarai)</option>
+                <option value="Ward 3 – South">Ward 3 – South (T. Nagar, Mambalam, Ashok Nagar)</option>
+                <option value="Ward 4 – East">Ward 4 – East (Adyar, Besant Nagar, Thiruvanmiyur)</option>
+                <option value="Ward 5 – West">Ward 5 – West (Velachery, Guindy, Saidapet)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Description *</div>
+            <textarea id="f-desc" name="description" rows="4" placeholder="Describe the issue — size, exact location, how it affects traffic or pedestrians…" required></textarea>
+          </div>
+          <div class="form-section">
+            <div class="form-section-title">Photo Evidence (Recommended)</div>
+            <label class="photo-drop" id="photo-drop" for="f-photo">
+              <span class="pd-icon" id="pd-icon">📷</span>
+              <span id="pd-text">Click to add a photo — helps the team verify faster (max 5 MB)</span>
+              <input type="file" id="f-photo" name="photo" accept="image/*" style="display:none"/>
+            </label>
+            <div id="photo-preview" style="display:none;margin-top:10px">
+              <img id="preview-img" style="max-width:100%;border-radius:8px;max-height:200px;object-fit:cover"/>
+            </div>
+          </div>
+          <input type="hidden" id="f-username" name="username" value=""/>
+          <button type="submit" class="submit-btn" id="submit-btn">Submit to Chennai Municipal Corporation →</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ USER: MY REPORTS ══ -->
+  <div class="page" id="page-myreports">
+    <div class="page-header">
+      <h2 class="section-title">My Reports</h2>
+      <p class="page-sub">Track the status of all complaints you have submitted.</p>
+    </div>
+    <div id="my-reports-list" class="issues-grid">
+      <div class="loading-msg">Loading your reports…</div>
+    </div>
+  </div>
+
+  <!-- ══ USER: FEEDBACK ══ -->
+  <div class="page" id="page-feedback">
+    <div class="form-wrap">
+      <div class="form-card">
+        <div class="form-header">
+          <h2>💬 Submit Feedback</h2>
+          <p>Help us improve the RoadAlert portal and Chennai's road maintenance service.</p>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">Overall Rating</div>
+          <div class="star-row" id="star-row">
+            <span class="star active" data-v="1">★</span>
+            <span class="star active" data-v="2">★</span>
+            <span class="star active" data-v="3">★</span>
+            <span class="star active" data-v="4">★</span>
+            <span class="star active" data-v="5">★</span>
+          </div>
+          <input type="hidden" id="fb-rating" value="5"/>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">Category</div>
+          <select id="fb-category" style="width:100%">
+            <option>General</option>
+            <option>App Usability</option>
+            <option>Response Time</option>
+            <option>Road Repair Quality</option>
+            <option>Staff Behaviour</option>
+            <option>Suggestion</option>
+          </select>
+        </div>
+        <div class="form-section">
+          <div class="form-section-title">Your Feedback *</div>
+          <textarea id="fb-message" rows="5" placeholder="Share your experience, suggestions, or complaints about the road maintenance service…"></textarea>
+        </div>
+        <button class="submit-btn" onclick="submitFeedback()">Submit Feedback →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ADMIN: DASHBOARD ══ -->
+  <div class="page" id="page-admin-dashboard">
+    <div class="admin-header">
+      <h2 class="section-title">Admin Dashboard</h2>
+      <p class="page-sub">Greater Chennai Corporation — Ward Maintenance Overview</p>
+    </div>
+    <div class="admin-stats-row" id="admin-stats-row"></div>
+    <div class="charts-row">
+      <div class="chart-card"><div class="chart-title">Reports by Issue Type</div><div id="chart-type"></div></div>
+      <div class="chart-card"><div class="chart-title">Ward-wise Resolution Rate</div><div id="chart-ward"></div></div>
+    </div>
+    <!-- Live map -->
+    <div class="chart-card" style="margin-bottom:1.5rem">
+      <div class="chart-title">Live Issue Map — Chennai</div>
+      <div id="google-map" style="width:100%;height:420px;border-radius:10px;margin-top:1rem;overflow:hidden;border:1px solid rgba(255,255,255,0.07)"></div>
+      <div class="map-legend" style="margin-top:10px;background:transparent;border:none;box-shadow:none;padding:0">
+        <span class="leg-dot red"></span>High
+        <span class="leg-dot amber" style="margin-left:12px"></span>Medium
+        <span class="leg-dot green" style="margin-left:12px"></span>Low
+      </div>
+    </div>
+    <!-- Feedback summary -->
+    <div class="chart-card">
+      <div class="chart-title">Recent Citizen Feedback</div>
+      <div id="admin-feedback-list" style="margin-top:1rem"></div>
+    </div>
+  </div>
+
+  <!-- ══ ADMIN: MANAGE ISSUES ══ -->
+  <div class="page" id="page-admin-issues">
+    <div class="page-header">
+      <h2 class="section-title">Manage Issues</h2>
+      <p class="page-sub">Review, assign crews, and update status of all citizen complaints.</p>
+    </div>
+    <div class="dash-top" style="margin-bottom:1.2rem">
+      <div class="filter-row">
+        <button class="filter-chip active" data-filter="all">All</button>
+        <button class="filter-chip" data-filter="status:reported">Reported</button>
+        <button class="filter-chip" data-filter="status:reviewing">Reviewing</button>
+        <button class="filter-chip" data-filter="status:fixed">Fixed</button>
+        <button class="filter-chip" data-filter="severity:high">🔴 Critical</button>
+      </div>
+      <input type="text" id="admin-issue-search" placeholder="🔍 Search issues…" class="search-input"/>
+    </div>
+    <div class="admin-table-card">
+      <div class="table-scroll">
+        <table class="admin-table">
+          <thead><tr>
+            <th>ID</th><th>Type</th><th>Location</th><th>Severity</th>
+            <th>Reporter</th><th>Votes</th><th>Status</th><th>Assign Crew</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="admin-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ADMIN: ALL REPORTS (read-only view like dashboard) ══ -->
+  <div class="page" id="page-admin-reports">
+    <div class="page-header">
+      <h2 class="section-title">All Reports</h2>
+      <p class="page-sub">Full list of citizen complaints across all wards.</p>
+    </div>
+    <div class="issues-grid" id="admin-reports-list">
+      <div class="loading-msg">Loading…</div>
+    </div>
+  </div>
+
+</main>
+</div><!-- end app-shell -->
+
+<script src="js/app.js"></script>
+</body>
+</html>
